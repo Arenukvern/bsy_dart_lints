@@ -56,6 +56,35 @@ class A {
             onceRewritten.indexOf('final int other;'),
         isTrue,
       );
+      expect(onceRewritten, contains('\n  static const tag = \'x\';'));
+      expect(onceRewritten, contains('\n  final int value;'));
+      expect(onceRewritten, contains('\n  A(this.value);'));
+    });
+
+    test('canonical rewrite adds class indentation when missing', () {
+      const original = '''
+class A {
+final int other;
+
+static const tag = 'x';
+
+A(this.value);
+
+final int value;
+}
+''';
+
+      final snapshot = _snapshotFor(original);
+      final order = LayoutPlanner.planCanonicalMemberOrder(snapshot);
+      expect(order, isNotNull);
+
+      final rewritten = _applyEdit(
+        original,
+        LayoutPlanner.planClassBodyRewrite(snapshot, order!),
+      );
+
+      expect(rewritten, contains('\n  static const tag = \'x\';'));
+      expect(rewritten, isNot(contains('\nstatic const tag = \'x\';')));
     });
 
     test('canonical order rejects extra or missing blank lines', () {

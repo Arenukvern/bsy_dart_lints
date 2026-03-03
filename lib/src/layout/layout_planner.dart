@@ -59,11 +59,13 @@ final class LayoutPlanner {
     final bodyStart = body.leftBracket.end;
     final bodyEnd = body.rightBracket.offset;
     final newLine = _newline(snapshot.content);
+    final memberIndentation = _classMemberIndentation(snapshot);
 
     final rewrittenBody = StringBuffer();
     rewrittenBody.write(newLine);
     for (var i = 0; i < orderedBlocks.length; i++) {
       final block = orderedBlocks[i];
+      rewrittenBody.write(memberIndentation);
       rewrittenBody.write(snapshot.content.substring(block.start, block.end));
       if (i != orderedBlocks.length - 1) {
         rewrittenBody
@@ -96,7 +98,10 @@ final class LayoutPlanner {
 
     final newLine = _newline(snapshot.content);
     final indentation = snapshot.indentationBefore(second.start);
-    final replacement = '$newLine$newLine$indentation';
+    final normalizedIndentation = indentation.isEmpty
+        ? _classMemberIndentation(snapshot)
+        : indentation;
+    final replacement = '$newLine$newLine$normalizedIndentation';
     if (gapText == replacement) {
       return null;
     }
@@ -194,6 +199,25 @@ final class LayoutPlanner {
       return member.isGetter ? 1 : 2;
     }
     return 0;
+  }
+
+  static String _classMemberIndentation(ClassLayoutSnapshot snapshot) {
+    for (final block in snapshot.memberBlocks) {
+      final linePrefix = snapshot.indentationBefore(block.start);
+      if (linePrefix.isNotEmpty && linePrefix.trim().isEmpty) {
+        return linePrefix;
+      }
+    }
+
+    final body = snapshot.classNode.body as BlockClassBody;
+    final classLinePrefix = snapshot.indentationBefore(body.leftBracket.offset);
+    final classIndentation = _leadingWhitespace(classLinePrefix);
+    return '$classIndentation  ';
+  }
+
+  static String _leadingWhitespace(String text) {
+    final match = RegExp(r'^[ \t]*').firstMatch(text);
+    return match?.group(0) ?? '';
   }
 }
 
