@@ -1,0 +1,7 @@
+name: bsy_dart_lints_cli_example
+description: CLI example app for manually testing bsy_dart_lints plugin rules.
+publish_to: none
+version: 0.0.1
+
+environment:
+  sdk: ^3.11.0
