@@ -22,4 +22,5 @@ local plugin package via `path: ../../`.
 
 Files:
 - `lib/good_layout.dart` follows all rules.
-- `lib/bad_layout.dart` intentionally violates rules.
+- `lib/bad_layout.dart` intentionally violates several rules.
+- `lib/all_rules_violations.dart` intentionally violates all plugin rules in one class.

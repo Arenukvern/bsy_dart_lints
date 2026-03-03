@@ -1,14 +1,11 @@
 # bsy_dart_lints
 
-`bsy_dart_lints` is a Dart analyzer plugin package that enforces class member
-layout rules and provides quick fixes.
+`bsy_dart_lints` is a Dart analyzer plugin package that enforces a single class member
+layout rule and provides a single autofix.
 
 ## Included rules
 
 - `constructor_bound_fields_first`
-- `constructor_bound_fields_separated_by_blank_line`
-- `constructors_separated_from_ctor_bound_fields`
-- `static_const_before_fields_and_constructors`
 
 ## Install and enable
 
@@ -22,9 +19,6 @@ plugins:
     path: /absolute/path/to/bsy_dart_lints
     diagnostics:
       constructor_bound_fields_first: true
-      constructor_bound_fields_separated_by_blank_line: true
-      constructors_separated_from_ctor_bound_fields: true
-      static_const_before_fields_and_constructors: true
 ```
 
 ### Published version
@@ -32,12 +26,9 @@ plugins:
 ```yaml
 plugins:
   bsy_dart_lints:
-    version: ^1.0.0
+    version: ^1.1.0
     diagnostics:
       constructor_bound_fields_first: true
-      constructor_bound_fields_separated_by_blank_line: true
-      constructors_separated_from_ctor_bound_fields: true
-      static_const_before_fields_and_constructors: true
 ```
 
 ## Ignore syntax
@@ -46,7 +37,7 @@ plugins:
 // ignore: bsy_dart_lints/constructor_bound_fields_first
 ```
 
-## Enforced style example
+## Canonical style
 
 ```dart
 class D {
@@ -57,15 +48,14 @@ class D {
   final field2;
 
   D(this.field1, this.field2);
+
+  String describe() => '$field1$field2';
 }
 ```
 
 ## Quick fixes
 
-- Reorder class members for canonical layout.
-- Move `static const` members before fields and constructors.
-- Normalize blank lines between constructor-bound fields.
-- Normalize blank lines between constructor-bound fields and constructors.
+- Reorder class members into canonical layout (static const members, constructor-bound fields, constructors, then remaining members) and normalize spacing to one blank line between adjacent members.
 
 ## Example CLI app
 

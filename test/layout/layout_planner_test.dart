@@ -46,50 +46,38 @@ class A {
             onceRewritten.indexOf('final int other;'),
         isTrue,
       );
-    });
-
-    test('static const reorder keeps methods before first field', () {
-      const original = '''
-class A {
-  void helper() {}
-
-  final int value;
-
-  static const tag = 'x';
-
-  A(this.value);
-}
-''';
-
-      final snapshot = _snapshotFor(original);
-      final order = LayoutPlanner.planStaticConstBeforeFieldsAndConstructors(
-        snapshot,
-      );
-      expect(order, isNotNull);
-
-      final rewritten = _applyEdit(
-        original,
-        LayoutPlanner.planClassBodyRewrite(snapshot, order!),
-      );
-
       expect(
-        rewritten.indexOf('void helper() {}') <
-            rewritten.indexOf("static const tag = 'x';"),
+        onceRewritten.indexOf('final int value;') <
+            onceRewritten.indexOf('A(this.value);'),
         isTrue,
       );
       expect(
-        rewritten.indexOf("static const tag = 'x';") <
-            rewritten.indexOf('final int value;'),
+        onceRewritten.indexOf('A(this.value);') <
+            onceRewritten.indexOf('final int other;'),
         isTrue,
       );
     });
 
-    test('normalizes missing blank line to exactly one', () {
+    test('canonical order rejects extra or missing blank lines', () {
       const original = '''
 class A {
   final int first;
   final int second;
 
+  A(this.first, this.second);
+}
+''';
+
+      final snapshot = _snapshotFor(original);
+      final order = LayoutPlanner.planCanonicalMemberOrder(snapshot);
+      expect(order, isNotNull);
+    });
+
+    test('normalizes missing blank line between members', () {
+      const original = '''
+class A {
+  final int first;
+  final int second;
   A(this.first, this.second);
 }
 ''';

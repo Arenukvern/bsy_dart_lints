@@ -1,20 +1,8 @@
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:bsy_dart_lints/src/layout/class_layout_snapshot.dart';
 import 'package:bsy_dart_lints/src/layout/member_block.dart';
-import 'package:analyzer/dart/ast/ast.dart';
 
-final class PlannedTextEdit {
-  final int offset;
-  final int length;
-  final String replacement;
-
-  const PlannedTextEdit({
-    required this.offset,
-    required this.length,
-    required this.replacement,
-  });
-}
-
-abstract final class LayoutPlanner {
+final class LayoutPlanner {
   static int canonicalCategory(
     ClassLayoutSnapshot snapshot,
     MemberBlock block,
@@ -25,7 +13,10 @@ abstract final class LayoutPlanner {
     if (snapshot.isConstructorBoundFieldBlock(block)) {
       return 1;
     }
-    return 2;
+    if (block.isConstructor) {
+      return 2;
+    }
+    return 3 + _nonConstructorMemberCategory(block.member);
   }
 
   static bool canSafelyReorder(
@@ -48,67 +39,13 @@ abstract final class LayoutPlanner {
   static List<MemberBlock>? planCanonicalMemberOrder(
     ClassLayoutSnapshot snapshot,
   ) {
-    if (snapshot.constructorBoundFieldBlocks.isEmpty) {
-      return null;
-    }
     if (!canSafelyReorder(snapshot)) {
       return null;
     }
 
-    final staticConstBlocks = <MemberBlock>[];
-    final constructorBoundBlocks = <MemberBlock>[];
-    final otherBlocks = <MemberBlock>[];
-
-    for (final block in snapshot.memberBlocks) {
-      if (block.isStaticConstField) {
-        staticConstBlocks.add(block);
-      } else if (snapshot.isConstructorBoundFieldBlock(block)) {
-        constructorBoundBlocks.add(block);
-      } else {
-        otherBlocks.add(block);
-      }
-    }
-
-    final ordered = [
-      ...staticConstBlocks,
-      ...constructorBoundBlocks,
-      ...otherBlocks,
-    ];
-
-    if (_isSameOrder(snapshot.memberBlocks, ordered)) {
-      return null;
-    }
-    return ordered;
-  }
-
-  static List<MemberBlock>? planStaticConstBeforeFieldsAndConstructors(
-    ClassLayoutSnapshot snapshot,
-  ) {
-    final staticConstBlocks = snapshot.staticConstBlocks;
-    if (staticConstBlocks.isEmpty) {
-      return null;
-    }
-    if (!canSafelyReorder(snapshot, requireSafeCtorBoundFields: false)) {
-      return null;
-    }
-
-    final nonStaticConst = snapshot.memberBlocks
-        .where((block) => !block.isStaticConstField)
-        .toList(growable: false);
-    final insertionIndex = nonStaticConst.indexWhere(
-      (block) => block.isField || block.isConstructor,
-    );
-    if (insertionIndex == -1) {
-      return null;
-    }
-
-    final ordered = [
-      ...nonStaticConst.take(insertionIndex),
-      ...staticConstBlocks,
-      ...nonStaticConst.skip(insertionIndex),
-    ];
-
-    if (_isSameOrder(snapshot.memberBlocks, ordered)) {
+    final ordered = _canonicalMemberOrder(snapshot);
+    if (_isSameOrder(snapshot.memberBlocks, ordered) &&
+        _hasRequiredSingleBlankLines(snapshot, ordered)) {
       return null;
     }
     return ordered;
@@ -148,6 +85,10 @@ abstract final class LayoutPlanner {
     MemberBlock first,
     MemberBlock second,
   ) {
+    if (second.start < first.end) {
+      return null;
+    }
+
     final gapText = snapshot.gapTextBetween(first, second);
     if (gapText.contains('//') || gapText.contains('/*')) {
       return null;
@@ -165,6 +106,68 @@ abstract final class LayoutPlanner {
       length: second.start - first.end,
       replacement: replacement,
     );
+  }
+
+  static List<MemberBlock> _canonicalMemberOrder(ClassLayoutSnapshot snapshot) {
+    final staticConstBlocks = <MemberBlock>[];
+    final constructorBoundBlocks = <MemberBlock>[];
+    final constructorBlocks = <MemberBlock>[];
+    final nonConstructorOtherBlocks = <MemberBlock>[];
+    final getterBlocks = <MemberBlock>[];
+    final methodBlocks = <MemberBlock>[];
+
+    for (final block in snapshot.memberBlocks) {
+      switch (canonicalCategory(snapshot, block)) {
+        case 0:
+          staticConstBlocks.add(block);
+          break;
+        case 1:
+          constructorBoundBlocks.add(block);
+          break;
+        case 2:
+          constructorBlocks.add(block);
+          break;
+        case 3:
+          nonConstructorOtherBlocks.add(block);
+          break;
+        case 4:
+          getterBlocks.add(block);
+          break;
+        case 5:
+          methodBlocks.add(block);
+          break;
+        default:
+          nonConstructorOtherBlocks.add(block);
+          break;
+      }
+    }
+
+    return [
+      ...staticConstBlocks,
+      ...constructorBoundBlocks,
+      ...constructorBlocks,
+      ...nonConstructorOtherBlocks,
+      ...getterBlocks,
+      ...methodBlocks,
+    ];
+  }
+
+  static bool _hasRequiredSingleBlankLines(
+    ClassLayoutSnapshot snapshot,
+    List<MemberBlock> orderedBlocks,
+  ) {
+    if (orderedBlocks.length < 2) {
+      return true;
+    }
+
+    for (var i = 0; i < orderedBlocks.length - 1; i++) {
+      final first = orderedBlocks[i];
+      final second = orderedBlocks[i + 1];
+      if (planNormalizeExactSingleBlankLine(snapshot, first, second) != null) {
+        return false;
+      }
+    }
+    return true;
   }
 
   static bool _isSameOrder(
@@ -185,4 +188,23 @@ abstract final class LayoutPlanner {
   static String _newline(String content) {
     return content.contains('\r\n') ? '\r\n' : '\n';
   }
+
+  static int _nonConstructorMemberCategory(ClassMember member) {
+    if (member is MethodDeclaration) {
+      return member.isGetter ? 1 : 2;
+    }
+    return 0;
+  }
+}
+
+final class PlannedTextEdit {
+  final int offset;
+  final int length;
+  final String replacement;
+
+  const PlannedTextEdit({
+    required this.offset,
+    required this.length,
+    required this.replacement,
+  });
 }

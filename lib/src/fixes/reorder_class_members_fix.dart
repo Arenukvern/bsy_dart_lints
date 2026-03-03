@@ -18,7 +18,10 @@ final class ReorderClassMembersFix extends ResolvedCorrectionProducer {
 
   @override
   CorrectionApplicability get applicability =>
-      CorrectionApplicability.singleLocation;
+      CorrectionApplicability.acrossSingleFile;
+
+  @override
+  FixKind? get multiFixKind => _fixKind;
 
   @override
   FixKind get fixKind => _fixKind;
@@ -35,50 +38,6 @@ final class ReorderClassMembersFix extends ResolvedCorrectionProducer {
       unitResult.content,
     );
     final orderedMembers = LayoutPlanner.planCanonicalMemberOrder(snapshot);
-    if (orderedMembers == null) {
-      return;
-    }
-
-    final edit = LayoutPlanner.planClassBodyRewrite(snapshot, orderedMembers);
-    await builder.addDartFileEdit(file, (builder) {
-      builder.addSimpleReplacement(
-        SourceRange(edit.offset, edit.length),
-        edit.replacement,
-      );
-    });
-  }
-}
-
-final class MoveStaticConstBeforeFieldsAndConstructorsFix
-    extends ResolvedCorrectionProducer {
-  static const _fixKind = FixKind(
-    'bsy_dart_lints.fix.move_static_const_before_fields_and_constructors',
-    DartFixKindPriority.standard,
-    'Move static const members before fields and constructors',
-  );
-
-  MoveStaticConstBeforeFieldsAndConstructorsFix({required super.context});
-
-  @override
-  CorrectionApplicability get applicability =>
-      CorrectionApplicability.singleLocation;
-
-  @override
-  FixKind get fixKind => _fixKind;
-
-  @override
-  Future<void> compute(ChangeBuilder builder) async {
-    final classNode = _classDeclarationFor(node);
-    if (classNode == null) {
-      return;
-    }
-
-    final snapshot = ClassLayoutSnapshot.fromClass(
-      classNode,
-      unitResult.content,
-    );
-    final orderedMembers =
-        LayoutPlanner.planStaticConstBeforeFieldsAndConstructors(snapshot);
     if (orderedMembers == null) {
       return;
     }

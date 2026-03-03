@@ -3,6 +3,3 @@ plugins:
     path: ../../
     diagnostics:
       constructor_bound_fields_first: true
-      constructor_bound_fields_separated_by_blank_line: true
-      constructors_separated_from_ctor_bound_fields: true
-      static_const_before_fields_and_constructors: true

@@ -1,20 +1,13 @@
+import 'package:bsy_dart_lints_cli_example/all_rules_violations.dart';
 import 'package:bsy_dart_lints_cli_example/bad_layout.dart';
+import 'package:bsy_dart_lints_cli_example/good_layout.dart';
 
 void main() {
-  final good = GoodLayout('alice', 30);
-  final bad = BadLayout('bob', 29);
+  final good = GoodLayout('alice', 30, Object());
+  final bad = BadLayout('bob', 29, Object());
+  final allRules = AllRulesViolations('carol', 31, Object());
 
   print('Good: ${good.describe()}');
   print('Bad: ${bad.describe()}');
-}
-
-class GoodLayout {
-  GoodLayout(this.name, this.age);
-  final String name;
-  final int age;
-  static const version = '1.0.0';
-
-  String describe() {
-    return 'GoodLayout: $name, $age';
-  }
+  print('AllRulesViolations: ${allRules.describe()}');
 }

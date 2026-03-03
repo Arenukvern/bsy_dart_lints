@@ -1,6 +1,6 @@
 name: bsy_dart_lints
 description: Dart analyzer plugin with class layout lint rules and quick fixes.
-version: 1.0.0
+version: 1.1.0
 repository: https://github.com/example/bsy_dart_lints
 
 environment:

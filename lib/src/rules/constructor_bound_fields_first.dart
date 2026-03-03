@@ -10,9 +10,11 @@ import 'package:bsy_dart_lints/src/layout/layout_planner.dart';
 final class ConstructorBoundFieldsFirstRule extends AnalysisRule {
   static const LintCode code = LintCode(
     'constructor_bound_fields_first',
-    'Constructor-bound fields must be at the beginning of the class body.',
+    'Class members are not in the canonical layout.',
     correctionMessage:
-        'Try placing static const members first and constructor-bound fields right after them.',
+        'Reorder class members as static const fields, constructor-bound fields, '
+        'constructors, then all remaining members; keep one blank line between '
+        'all adjacent members.',
     uniqueName: 'bsy_dart_lints.constructor_bound_fields_first',
   );
 
@@ -20,7 +22,8 @@ final class ConstructorBoundFieldsFirstRule extends AnalysisRule {
     : super(
         name: 'constructor_bound_fields_first',
         description:
-            'Require constructor-bound fields to appear at the beginning of class members.',
+            'Enforce canonical member order plus one-blank-line spacing between '
+            'adjacent members.',
       );
 
   @override
@@ -43,25 +46,56 @@ final class _Visitor extends SimpleAstVisitor<void> {
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
-    final unit = context.currentUnit;
-    if (unit == null) {
-      return;
-    }
-
-    final snapshot = ClassLayoutSnapshot.fromClass(node, unit.content);
-    if (snapshot.constructorBoundFieldBlocks.isEmpty) {
-      return;
-    }
-
-    var maxCategory = -1;
-    for (final block in snapshot.memberBlocks) {
-      final category = LayoutPlanner.canonicalCategory(snapshot, block);
-      if ((category == 0 || category == 1) && category < maxCategory) {
-        rule.reportAtNode(block.member);
+    try {
+      final unit = context.currentUnit;
+      if (unit == null) {
+        return;
       }
-      if (category > maxCategory) {
-        maxCategory = category;
+
+      final snapshot = ClassLayoutSnapshot.fromClass(node, unit.content);
+      final ordered = LayoutPlanner.planCanonicalMemberOrder(snapshot);
+      if (ordered == null) {
+        return;
       }
+
+      final expectedPositions = <int, int>{};
+      for (var i = 0; i < ordered.length; i++) {
+        expectedPositions[ordered[i].index] = i;
+      }
+
+      final diagnostics = <int>{};
+      for (final block in snapshot.memberBlocks) {
+        if (expectedPositions[block.index] != block.index) {
+          diagnostics.add(block.member.offset);
+        }
+      }
+
+      if (ordered.length >= 2) {
+        for (var i = 0; i < ordered.length - 1; i++) {
+          final first = ordered[i];
+          final second = ordered[i + 1];
+          if (second.start < first.end) {
+            continue;
+          }
+          if (LayoutPlanner.planNormalizeExactSingleBlankLine(
+                snapshot,
+                first,
+                second,
+              ) !=
+              null) {
+            diagnostics.add(second.member.offset);
+          }
+        }
+      }
+
+      for (final offset in diagnostics) {
+        final block = snapshot.blockContainingOffset(offset);
+        if (block != null) {
+          rule.reportAtNode(block.member);
+        }
+      }
+    } on Object {
+      return;
     }
   }
 }
