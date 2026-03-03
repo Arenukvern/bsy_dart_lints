@@ -1,5 +1,4 @@
 import 'package:bsy_dart_lints_cli_example/bad_layout.dart';
-import 'package:bsy_dart_lints_cli_example/good_layout.dart';
 
 void main() {
   final good = GoodLayout('alice', 30);
@@ -7,4 +6,15 @@ void main() {
 
   print('Good: ${good.describe()}');
   print('Bad: ${bad.describe()}');
+}
+
+class GoodLayout {
+  GoodLayout(this.name, this.age);
+  final String name;
+  final int age;
+  static const version = '1.0.0';
+
+  String describe() {
+    return 'GoodLayout: $name, $age';
+  }
 }
